@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+require 'roo'
+require 'roo-xls'
+
+puts "Date,Description,Amount\n"
+ARGV.each do |file|
+  sheet=Roo::Spreadsheet.open(file)
+  sheet.find_all{|row| row[0].is_a?(Date)}.each do |row|
+    date=row[0]
+    bdate=row[1]
+    vendor=row[2]
+    city=row[3]
+    currency=row[4]
+    camount=row[5]
+    amount=row[6]
+    crate="%0.2f" % (amount/camount) if not camount.to_f.zero?
+    description="#{vendor}"
+    description<<" #{city}" if city and not city.empty?
+    description<<" (#{camount} #{currency}@#{crate})" if currency and 
+                                                          not currency.empty?
+    puts "#{date},#{description},#{-amount}\n"
+  end
+end
