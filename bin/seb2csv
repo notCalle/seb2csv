@@ -1,23 +1,36 @@
 #!/usr/bin/env ruby
-require 'roo'
-require 'roo-xls'
+require_relative "../lib/seb2csv/sebank"
+require_relative "../lib/seb2csv/sebkort"
 
-puts "Date,Description,Amount\n"
-ARGV.each do |file|
-  sheet=Roo::Spreadsheet.open(file)
-  sheet.find_all{|row| row[0].is_a?(Date)}.each do |row|
-    date=row[0]
-    bdate=row[1]
-    vendor=row[2]
-    city=row[3]
-    currency=row[4]
-    camount=row[5]
-    amount=row[6]
-    crate="%0.2f" % (amount/camount) if not camount.to_f.zero?
-    description="#{vendor}"
-    description<<" #{city}" if city and not city.empty?
-    description<<" (#{camount} #{currency}@#{crate})" if currency and 
-                                                          not currency.empty?
-    puts "#{date},#{description},#{-amount}\n"
+class SEB2CSV
+  DEFAULTS = YAML.load(<<EOF
+---
+sebank:
+- Date: date
+- 'Check #': verification
+- Description: description
+- Amount: amount
+sebkort:
+- Date: date
+- Description: description
+- Amount: neg_amount
+EOF
+  )
+end
+
+ARGV.each do |dir|
+  next unless File.directory?(dir)
+  case
+  when (not (files = Dir[File.join("#{dir}", "*.xlsx")]).empty?)
+    generator = SEB2CSV::SEBank
+  when (not (files = Dir[File.join("#{dir}", "*.xls")]).empty?)
+    generator = SEB2CSV::SEBKort
+  else
+    STDERR.puts("Error: can't find any matching input files in #{dir}")
+    next
+  end
+  
+  File.open("#{dir}.csv","w") do |out|
+    generator.new(files, out)
   end
 end
